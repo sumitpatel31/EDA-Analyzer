@@ -335,11 +335,17 @@ if file is not None:
 
     # --- Sidebar Controls for Plotting ---
     st.sidebar.header("Plot Options")
-    plot_type = st.sidebar.selectbox("Select Plot Type", ["Bar Plot", "Pie Chart", "Box Plot", "Histogram", "Scatter Plot", "Cross Plot", "Crosstab","Heatmap"], key="plot_type")
-    feature1 = st.sidebar.selectbox("Select Feature 1 (X-axis)", df.columns.tolist(), key="feature1")
+    plot_type = st.sidebar.selectbox("Select Plot Type", ["Bar Plot", "Pie Chart", "Box Plot", "Histogram", "Scatter Plot",  "Crosstab","Heatmap"], key="plot_type")
+    feature1 = None
     feature2 = None
-    if plot_type in ["Scatter Plot", "Crosstab", "Cross Plot"]:
+    if plot_type in ["Box Plot", "Histogram", "Pie Chart", "Bar Plot"]:
+        feature1 = st.sidebar.selectbox("Select Feature 1 (X-axis)", df.columns.tolist(), key="feature1")
+
+    elif plot_type in ["Scatter Plot", "Crosstab", "Cross Plot"]:
+        feature1 = st.sidebar.selectbox("Select Feature 1 (X-axis)", df.columns.tolist(), key="feature1")
         feature2 = st.sidebar.selectbox("Select Feature 2 (Y-axis)", df.columns.tolist(), key="feature2")
+    elif plot_type == "Heatmap":
+        pass  # No feature selection needed for heatmap
 
     # --- Session State for Plot Generation ---
     if "generated" not in st.session_state:
@@ -372,24 +378,27 @@ if file is not None:
         plt.rcParams["axes.titlesize"] = 10
 
         # Frequency Table
-        if show_freq:
-            st.markdown("### Frequency Table(s)")
-            if feature2 and plot_type in ["Scatter Plot", "Crosstab", "Cross Plot"]:
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.markdown(f"#### `{feature1}`")
-                    f1_table = df[feature1].value_counts().reset_index()
-                    f1_table.columns = [feature1, "Frequency"]
-                    st.table(f1_table)
-                with col2:
-                    st.markdown(f"#### `{feature2}`")
-                    f2_table = df[feature2].value_counts().reset_index()
-                    f2_table.columns = [feature2, "Frequency"]
-                    st.table(f2_table)
-            else:
-                freq_table = df[feature1].value_counts().reset_index()
-                freq_table.columns = [feature1, "Frequency"]
-                st.table(freq_table)
+        if plot_type !="Heatmap":
+            if show_freq:
+                st.markdown("### Frequency Table(s)")
+                if feature2 and plot_type in ["Scatter Plot", "Crosstab", "Cross Plot"]:
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.markdown(f"#### `{feature1}`")
+                        f1_table = df[feature1].value_counts().reset_index()
+                        f1_table.columns = [feature1, "Frequency"]
+                        st.table(f1_table)
+                    with col2:
+                        st.markdown(f"#### `{feature2}`")
+                        f2_table = df[feature2].value_counts().reset_index()
+                        f2_table.columns = [feature2, "Frequency"]
+                        st.table(f2_table)
+                else:
+                    freq_table = df[feature1].value_counts().reset_index()
+                    freq_table.columns = [feature1, "Frequency"]
+                    st.table(freq_table)
+        else:
+            st.info("Frequency table not applicable for Heatmap.")
 
         # --- Plot Logic ---
         if plot_type == "Bar Plot":
@@ -444,14 +453,7 @@ if file is not None:
             else:
                 st.warning("Both selected columns must be numeric for Scatter Plot.")
 
-        elif plot_type == "Cross Plot":
-            numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
-            if len(numeric_cols) >= 2:
-                st.markdown("### Cross Plot (Pairwise Relationships)")
-                fig = sns.pairplot(df[numeric_cols], diag_kind="kde", corner=True)
-                st.pyplot(fig)
-            else:
-                st.warning("Cross Plot requires at least two numeric columns.")
+        
 
         elif plot_type == "Crosstab" and feature2:
             st.markdown("### Crosstab Relationship Table")
@@ -462,95 +464,16 @@ if file is not None:
             ax.set_title(f"Crosstab Heatmap: {feature1} vs {feature2}")
             st.pyplot(fig)
 
-        # --- Heatmap (Correlation Matrix) ---
-        # elif plot_type == "Heatmap (Correlation Matrix)":
-        #     st.markdown("### Correlation Heatmap")
-        #     numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
 
-        #     if len(numeric_cols) < 2:
-        #         st.warning("Need at least two numeric columns to display a heatmap.")
-        #     else:
-        #         #corr_matrix = df[numeric_cols].corr()
-        #         method = st.selectbox(
-        #             "Select correlation method",
-        #             ["pearson", "spearman", "kendall"],
-        #             key="corr_method"
-        #         )
-        #         corr_matrix = df[numeric_cols].corr(method=method)
-
-        #         # Display correlation table
-        #         with st.expander("View Correlation Table"):
-        #             st.dataframe(corr_matrix.style.background_gradient(cmap="coolwarm", axis=None))
-
-        #         # Plot heatmap
-        #         fig, ax = plt.subplots(figsize=(5, 4), dpi=120)
-        #         sns.heatmap(
-        #             corr_matrix,
-        #             annot=True,
-        #             cmap="crest",  # Dark-theme-friendly palette
-        #             fmt=".2f",
-        #             square=True,
-        #             linewidths=0.5,
-        #             cbar_kws={"shrink": 0.7},
-        #             ax=ax
-        #         )
-        #         ax.set_title("Feature Correlation Heatmap", fontsize=10, color="#f8fafc")
-        #         st.pyplot(fig)
-        # --- Interactive Heatmap (Correlation Matrix) ---
-        elif plot_type == "Heatmap (Correlation Matrix)":
-            import plotly.express as px
-
-            st.markdown("### 🔥 Interactive Correlation Heatmap")
-
-            # --- Select only numeric columns
+        elif plot_type == "Heatmap":
             numeric_cols = df.select_dtypes(include=np.number).columns.tolist()
+            corr_matrix = df[numeric_cols].corr(numeric_only=True)
 
-            if len(numeric_cols) < 2:
-                st.warning("⚠️ Need at least two numeric columns for correlation heatmap.")
-            else:
-                # --- Limit column count for performance
-                max_cols = 40
-                if len(numeric_cols) > max_cols:
-                    st.info(f"📉 Too many numeric columns ({len(numeric_cols)}). "
-                            f"Showing first {max_cols} for smoother rendering.")
-                    numeric_cols = numeric_cols[:max_cols]
-
-                # --- Optional: correlation method selector
-                method = st.selectbox(
-                    "Select correlation method",
-                    ["pearson", "spearman", "kendall"],
-                    key="corr_method"
-                )
-
-                # --- Compute correlation matrix
-                corr_matrix = df[numeric_cols].corr(method=method)
-
-                # --- Display correlation table (expandable)
-                with st.expander("📋 View Correlation Table"):
-                    st.dataframe(corr_matrix.round(2))
-
-                # --- Create interactive Plotly heatmap
-                fig = px.imshow(
-                    corr_matrix,
-                    text_auto=False,
-                    color_continuous_scale="Viridis",   # Works great on dark backgrounds
-                    aspect="auto",
-                    title=f"Correlation Heatmap ({method.capitalize()} Method)"
-                )
-
-                # --- Adjust layout for dark mode
-                fig.update_layout(
-                    width=800,
-                    height=600,
-                    paper_bgcolor="#0f172a",
-                    plot_bgcolor="#1e293b",
-                    font=dict(color="#f8fafc"),
-                    margin=dict(l=60, r=60, t=60, b=60)
-                )
-
-                # --- Display interactive chart
-                st.plotly_chart(fig, use_container_width=True)
-
+            plt.figure(figsize=(10, 8))
+            sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap='coolwarm', square=True)
+            plt.title("Correlation Heatmap")
+            fig = plt.gcf()
+            st.pyplot(fig)
 
 
 else:
