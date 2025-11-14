@@ -298,36 +298,36 @@ if file is not None:
         df = data
         st.warning("EDA cleaning is OFF — Using raw data.")
 
-    # # --- Automated EDA Report ---
-    # st.subheader("Automated EDA Report")
-    # try:
-    #     from ydata_profiling import ProfileReport
-    # except ModuleNotFoundError:
-    #     st.error("Missing dependency: install it with `pip install ydata-profiling pydantic-settings`")
-    #     st.stop()
+    # --- Automated EDA Report ---
+    st.subheader("Automated EDA Report")
+    try:
+        from ydata_profiling import ProfileReport
+    except ModuleNotFoundError:
+        st.error("Missing dependency: install it with `pip install ydata-profiling pydantic-settings`")
+        st.stop()
 
-    # if st.button("Generate Auto EDA Report"):
-    #     with st.spinner("Generating report... This might take a minute "):
-    #         profile = ProfileReport(df, explorative=True)
-    #         report_path = "EDA_Report.html"
-    #         profile.to_file(report_path)
-    #         st.success("EDA Report generated successfully!")
+    if st.button("Generate Auto EDA Report"):
+        with st.spinner("Generating report... This might take a minute "):
+            profile = ProfileReport(df, explorative=True)
+            report_path = "EDA_Report.html"
+            profile.to_file(report_path)
+            st.success("EDA Report generated successfully!")
 
-    #         # Download
-    #         with open(report_path, "rb") as f:
-    #             st.download_button(
-    #                 label="Download EDA Report (HTML)",
-    #                 data=f,
-    #                 file_name="EDA_Report.html",
-    #                 mime="text/html"
-    #             )
+            # Download
+            with open(report_path, "rb") as f:
+                st.download_button(
+                    label="Download EDA Report (HTML)",
+                    data=f,
+                    file_name="EDA_Report.html",
+                    mime="text/html"
+                )
 
-    #         # Inline Preview
-    #         from streamlit.components.v1 import html
-    #         with open(report_path, "r", encoding="utf-8") as f:
-    #             html_report = f.read()
-    #         st.markdown("### EDA Report Preview")
-    #         html(html_report, height=800, scrolling=True)
+            # Inline Preview
+            from streamlit.components.v1 import html
+            with open(report_path, "r", encoding="utf-8") as f:
+                html_report = f.read()
+            st.markdown("### EDA Report Preview")
+            html(html_report, height=800, scrolling=True)
 
     # --- Data Preview ---
     st.markdown("### Data Preview")
